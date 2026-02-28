@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
           // Margin call — force close
           const netReturn = Math.max(0, s.collateral - loss);
           await supabase.from("players").update({
-            wallet: supabase.rpc ? 0 : 0, // Would use RPC for atomic increment
+            wallet: 0,
           }).eq("id", s.player_id);
           // For now, just delete the short and return remaining collateral
           const { data: player } = await supabase.from("players").select("wallet").eq("id", s.player_id).single();

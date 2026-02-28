@@ -139,7 +139,7 @@ export function getLeague(nw: number): League {
 
 // ─── Day Calculation ───
 // Day 1 = the day you launch. Set this to your launch date.
-export const LAUNCH_DATE = new Date("2025-03-01T00:00:00-05:00"); // Midnight ET
+export const LAUNCH_DATE = new Date("2026-02-28T00:00:00-05:00"); // Midnight ET
 
 export function getCurrentDay(): number {
   const now = new Date();
