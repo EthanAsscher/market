@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
     // Update market money supply
     await supabase.from("market_state").update({
-      money_supply: supabase.rpc ? undefined : 0, // Will use RPC for atomic increment
+      money_supply: 0,
       total_claims: player.total_claimed + 1,
     }).eq("id", 1);
 
