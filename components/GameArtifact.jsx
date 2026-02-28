@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useSharedPrices } from "./useSharedPrices";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 // ═══════════════════════════════════════════════════════════
@@ -425,6 +426,9 @@ export default function Market({ autoSignIn, onSignOut }) {
   const audioStarted = useRef(false);
   const nRef = useRef(null);
 
+  // Shared server prices from Supabase
+  const sharedPrices = useSharedPrices(true);
+
   const notify = useCallback((m, t = "info", sfx) => {
     clearTimeout(nRef.current); setNotif({ m, t });
     nRef.current = setTimeout(() => setNotif(null), 3500);
@@ -432,7 +436,8 @@ export default function Market({ autoSignIn, onSignOut }) {
     else if (t === "error") AudioEngine.playSfx("error");
   }, []);
 
-  const prices = mk ? Object.fromEntries(ALL_GOODS.map(g => [g.id, mk.commodities[g.id]?.last || 0.10])) : {};
+  const localPrices = mk ? Object.fromEntries(ALL_GOODS.map(g => [g.id, mk.commodities[g.id]?.last || 0.10])) : {};
+  const prices = sharedPrices ? Object.fromEntries(ALL_GOODS.map(g => [g.id, sharedPrices[g.id]?.price || localPrices[g.id] || 0.10])) : localPrices;
   const calcNW = useCallback((p) => {
     if (!p || !mk) return 0;
     let t = (p.wallet || 0) + (p.savings || 0);
@@ -806,6 +811,20 @@ export default function Market({ autoSignIn, onSignOut }) {
   // Switch music mode based on light/dark theme
   useEffect(() => { if (audioStarted.current && audioOn) AudioEngine.setMode(isDk ? "dark" : "light"); }, [isDk, audioOn]);
   useEffect(() => { const iv = setInterval(() => setDayClock(getTimeUntilReset()), 1000); return () => clearInterval(iv); }, []);
+
+  // Sync shared server prices into local market state
+  useEffect(() => {
+    if (!sharedPrices || !mk) return;
+    const updated = { ...mk, commodities: { ...mk.commodities } };
+    Object.entries(sharedPrices).forEach(([id, sp]) => {
+      if (updated.commodities[id]) {
+        const old = updated.commodities[id];
+        updated.commodities[id] = { ...old, last: sp.price, bankHeld: sp.bankHeld, playerHeld: sp.playerHeld, totalShares: sp.totalShares };
+        updated.commodities[id].snaps = [...(old.snaps || []), { t: Date.now(), p: sp.price }];
+      }
+    });
+    setMk(updated);
+  }, [sharedPrices]);
   
   // Auto-start music on first user interaction (browsers require gesture for AudioContext)
   useEffect(() => {
